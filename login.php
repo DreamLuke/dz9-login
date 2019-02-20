@@ -5,7 +5,7 @@ require './Cookie.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-	$host = 'localhost';
+    $host = 'localhost';
     $db = 'dz9';
     $user = 'root';
     $pass = '';
@@ -20,16 +20,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $login = $_POST['login'];
     $password = $_POST['password'];
+    //$password = md5($password . 'СОЛЬ');
 
     $sql = "SELECT * FROM users WHERE login = :login and password=:password limit 1";
     $rows = $pdo->prepare($sql);
     $rows->execute(['login' => $login, 'password' => $password]);
-    //$rows->execute(['login' => $login, 'password'=>md5($password)]);
 
     $row = $rows->fetch();
 
     //if(isset($_POST['login']) && isset($_POST['password']) && ($_POST['login'] === 'admin') && ($_POST['password'] === 'admin')) {
-    if(isset($_POST['login']) && isset($_POST['password']) && ($_POST['login'] === $row['login']) && ($_POST['password'] === $row['password'])) {
+    if(isset($_POST['login']) && isset($_POST['password']) && ($_POST['login'] === $row['login']) && ($password === $row['password'])) {
+        $password = md5($password . 'СОЛЬ');
+        $sql = "UPDATE users SET password = :password WHERE id = :id";
+        $rows = $pdo->prepare($sql);
+        $rows->execute(['password' => $password, 'id' => $row['id']]);
+
         $user = [ //создание пользователя
             'id'=> 1,
             'login' => 'admin',
@@ -48,13 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rows = $pdo->prepare($sql);
             $rows->execute(['hash' => $hash, 'id' => $row['id']]);
         }
-    	// header('Location: ./secret.php');
-    	//echo 'hash = ' . $hash .'<br>';
-    	echo 'SUCCESS' . '<br>';
-    	echo $_POST['login'] . '<br>';
-	} else {
-		header('Location: ./wrong.php');
-	}
+        // header('Location: ./secret.php');
+        //echo 'hash = ' . $hash .'<br>';
+        echo 'SUCCESS' . '<br>';
+        echo $_POST['login'] . '<br>';
+    } else {
+        header('Location: ./wrong.php');
+    }
 }
 ?>
 <link rel="stylesheet" href="auth.css">
