@@ -4,7 +4,32 @@ require './Session.php';
 require './Cookie.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if(isset($_POST['login']) && isset($_POST['password']) && ($_POST['login'] === 'admin') && ($_POST['password'] === 'admin')) {
+
+	$host = 'localhost';
+    $db = 'dz9';
+    $user = 'root';
+    $pass = '';
+    $charset = 'utf8';
+    $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+    $opt = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+    $pdo = new PDO($dsn, $user, $pass, $opt);
+
+    $login = $_POST['login'];
+    $password = $_POST['password'];
+
+    $sql = "SELECT * FROM users WHERE login = :login and password=:password limit 1";
+    $rows = $pdo->prepare($sql);
+    $rows->execute(['login' => $login, 'password' => $password]);
+    //$rows->execute(['login' => $login, 'password'=>md5($password)]);
+
+    $row = $rows->fetch();
+
+    //if(isset($_POST['login']) && isset($_POST['password']) && ($_POST['login'] === 'admin') && ($_POST['password'] === 'admin')) {
+    if(isset($_POST['login']) && isset($_POST['password']) && ($_POST['login'] === $row['login']) && ($_POST['password'] === $row['password'])) {
         $user = [ //создание пользователя
             'id'=> 1,
             'login' => 'admin',
@@ -18,10 +43,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hash = md5(md5($user['id'] . time() . random_int(0, 100000)));
             $cookie = new cookie;
             $cookie->set('token_access', $hash);
+
+            $sql = 'UPDATE users SET token_access=:hash WHERE id=:id';
+            $rows = $pdo->prepare($sql);
+            $rows->execute(['hash' => $hash, 'id' => $row['id']]);
         }
     	// header('Location: ./secret.php');
     	//echo 'hash = ' . $hash .'<br>';
-    	echo 'SUCCESS';
+    	echo 'SUCCESS' . '<br>';
+    	echo $_POST['login'] . '<br>';
+	} else {
+		header('Location: ./wrong.php');
 	}
 }
 ?>
@@ -30,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
-
 
 <div class="container">
     <div class="row">
@@ -75,12 +106,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
-        </div><!-- /.col-md-offset-3 col-md-6 -->
-    </div><!-- /.row -->
-</div><!-- /.container -->
+        </div>
+    </div>
+</div>
 <!-- <script>
     $(function(){
-        $('#form-horizontal-one').submit(function(e){
+        $('#form-horizontal').submit(function(e){
             var form = $(this);
 
             $.ajax({
